@@ -13,7 +13,6 @@ interface CreatePostProps {}
 
 export const CreatePost: React.FC<CreatePostProps> = ({}) => {
   const router = useRouter()
-  console.log(router)
   useIsAuth()
 
   const[,createPost] = useCreatePostMutation()

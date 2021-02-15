@@ -1,53 +1,69 @@
+import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
   Box,
   Button,
   Flex,
   Heading,
+  IconButton,
   Link,
   Stack,
-  Text
+  Text,
 } from "@chakra-ui/react";
 import { withUrqlClient } from "next-urql";
 import NextLink from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import EditDeletePostButtons from "../components/EditDeletePostButtons";
 import { Layout } from "../components/Layout";
-import { usePostQuery } from "../generated/graphql";
+import { UpdootSection } from "../components/UpdootSection";
+import {
+  useMeQuery,
+  usePostsQuery,
+} from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 
 const Index = () => {
   const [variables, setVariables] = useState({
-    limit: 10,
-    cursor: null as null | string
+    limit: 15,
+    cursor: null as null | string,
   });
 
-  const [{ data, fetching }] = usePostQuery({variables});
+  const [{ data: meData }] = useMeQuery();
+  const [{ data, fetching }] = usePostsQuery({ variables });
 
   if (!fetching && !data) {
     return <div>Something went wrong fetching the posts :/</div>;
   }
-  
-  useEffect(() => console.log(data), [data]);
-  
 
   return (
     <Layout>
-      <Flex alignItems={"center"}>
-        <Heading>LiReddit</Heading>
-
-        <NextLink href="/create-post">
-          <Link ml={"auto"}>Create Post</Link>
-        </NextLink>
-      </Flex>
       {!data ? (
         <div>Loading...</div>
       ) : (
         <Stack spacing={8} mt={8}>
-          {/* {data.posts.posts.map((p) => (
-            <Box key={p.id} p={5} shadow="md" borderWidth="1px">
-              <Heading fontSize="xl">{p.title}</Heading>
-              <Text mt={4}>{p.textSnippet}</Text>
-            </Box>
-          ))} */}
+          {/* {data.posts.posts.map((p) => ( */}
+          {data.posts.posts?.map((p) =>
+            !p ? null : (
+              <Flex key={p.id} p={5} shadow="md" borderWidth="1px">
+                <UpdootSection post={p} />
+                <Box flex={1}>
+                  <NextLink href="/post/[id]" as={`/post/${p.id}`}>
+                    <Link>
+                      <Heading fontSize="xl">{p.title}</Heading>
+                    </Link>
+                  </NextLink>
+                  <Text>by {p.creator.username}</Text>
+                  <Flex alignItems={"center"}>
+                    <Text>{p.textSnippet}</Text>
+                    {meData?.me?.id !== p.creator.id ? null : (
+                      <Box ml={"auto"}>
+                        <EditDeletePostButtons id={p.id} />
+                      </Box>
+                    )}
+                  </Flex>
+                </Box>
+              </Flex>
+            )
+          )}
         </Stack>
       )}
       {data && data.posts.hasMore ? (
@@ -71,6 +87,7 @@ const Index = () => {
   );
 };
 
+//! may you want to check out why it does not render on the server side
 export default withUrqlClient(createUrqlClient, { ssr: true })(Index);
 // enable ssr (server side rendering) when the content from the request
 // is important for SEO (like posts)
